@@ -1,3 +1,6 @@
+
+#include <Wire.h>
+
 #define MasterON 5
 
 /***********************************************
@@ -18,14 +21,14 @@ bool AB = 0;
  ***********************************************/
 
 long radix = 10;
-volatile long int freq = 888888; 
+volatile long int freq = 35600; 
 volatile long int oldFreq = freq;
 
 //volatile long int frequencyA =   3650000ULL;
 //volatile long int frequencyB =   3560000ULL;
 //volatile long int oldFreqA =     frequencyA;
-volatile long int bandEnd =     30000000ULL;
-volatile long int bandStart =    3000000ULL;
+volatile long int bandEnd =     300000;
+volatile long int bandStart =    30000;
 
 /***********************************************
  * 
@@ -33,9 +36,9 @@ volatile long int bandStart =    3000000ULL;
  * 
  ***********************************************/
 
-static const int pushPin = 2;
+static const int pushPin = 4;
 static const int rotAPin = 3;
-static const int rotBPin = 4;
+static const int rotBPin = 2;
 
 /***********************************************
  * 
@@ -71,15 +74,16 @@ void setup(){
  *  ROTARY ENCODER PIN SETUP
  * 
  ***********************************************/
-
+  pinMode(pushPin,INPUT);
   pinMode(rotAPin,INPUT);
   pinMode(rotBPin,INPUT);
 
+  digitalWrite(pushPin,HIGH);
   digitalWrite(rotAPin,HIGH);
   digitalWrite(rotBPin,HIGH);
 
-  attachInterrupt(digitalPinToInterrupt(rotAPin),ISRrotAChange,RISING);
-  attachInterrupt(digitalPinToInterrupt(rotBPin),ISRrotBChange,RISING);
+  attachInterrupt(digitalPinToInterrupt(rotAPin),ISRrotAChange,CHANGE);
+  attachInterrupt(digitalPinToInterrupt(rotBPin),ISRrotBChange,CHANGE);
 
 /***********************************************
  * 
@@ -92,9 +96,9 @@ void setup(){
   
   
   //delay(2000);
-  while(!Serial.available()){
+  //while(!Serial.available()){
    //Serial.println(val);
-  }
+  //}
 }
 
 /***********************************************
@@ -110,11 +114,15 @@ void loop() {
  *  Headers Master/Display/Controller
  * 
  ***********************************************/
-  if(freq != oldFreq){
+
+  if(freq != oldFreq){ 
+    //Serial.println("Test");
+    //if(updateDis == 1){
     //SendFrequency(bandInit);
     updateDisplay(freq);
     oldFreq = freq;   
     //Serial.println("check");
+    //Serial.println(freq);
   }  
   if (Serial.available()) {
     str = Serial.readStringUntil('\r\n');
@@ -180,6 +188,7 @@ void loop() {
 }
 
 void ISRrotBChange(){
+  
   if(digitalRead(rotBPin)){
     rotBValue = 1;
     UpdateRot();
@@ -188,9 +197,12 @@ void ISRrotBChange(){
     UpdateRot();
   }
 }
+
 void ISRrotAChange(){
+  
   if(digitalRead(rotAPin)){
     rotAValue = 1;
+    //Serial.println("Achange");
     UpdateRot();
   } else{
     rotAValue = 0;
@@ -203,9 +215,11 @@ void UpdateRot(){
   switch(rotState){
     case 0:
       if(!rotBValue){
+        
         rotState = 1; // CW 1
       }
       if(!rotAValue){
+        //Serial.println("Bchange");
         rotState = 11; // CCW 1
       } 
     break;
@@ -249,6 +263,7 @@ void UpdateRot(){
             contrast = chkAnalog(contrast);
           }*/
           else{
+            Serial.println("Achange");
             freq = (freq + radix);
               if(freq > bandEnd){
                 freq = bandEnd;
@@ -503,6 +518,7 @@ void updateDisplay(long int frequency){
     }
   }*/
   //SendFrequency(frequency);
+  updateDis = 0;
 }
 
 /*
