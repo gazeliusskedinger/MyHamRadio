@@ -1,4 +1,4 @@
-
+#include <SoftwareSerial.h>
 #include <Wire.h>
 
 #define MasterON 5
@@ -20,8 +20,11 @@ bool AB = 0;
  * 
  ***********************************************/
 
-long radix = 10;
-volatile long int freq = 35600; 
+long radix = 100;
+int  radixInt = 1;
+int  oldRadixInt = radixInt;
+
+volatile long int freq = 3560000; 
 volatile long int oldFreq = freq;
 
 //volatile long int frequencyA =   3650000ULL;
@@ -58,8 +61,17 @@ volatile int rotAValue = 1;
 
  String dis = "DIS";
  String fre = "FRE";
- String mas = "MAS"; 
+ String mas = "MAS";
+ String rix = "RIX"; 
 
+/***********************************************
+ * 
+ *  Other declarations
+ * 
+ ***********************************************/
+
+
+SoftwareSerial mySerial(6, 7);
 /************************************************ 
  *  
  *  the setup routine runs once when you press 
@@ -91,14 +103,15 @@ void setup(){
  * 
  ***********************************************/
   Serial.begin(57600);
+  mySerial.begin(57600);
   pinMode(MasterON,OUTPUT);
   digitalWrite(MasterON,HIGH);
   
   
   //delay(2000);
-  //while(!Serial.available()){
+  while(!mySerial.available()){
    //Serial.println(val);
-  //}
+  }
 }
 
 /***********************************************
@@ -108,7 +121,7 @@ void setup(){
  ***********************************************/
 
 void loop() {
-
+//Serial.println(freq);
 /***********************************************
  * 
  *  Headers Master/Display/Controller
@@ -123,9 +136,12 @@ void loop() {
     oldFreq = freq;   
     //Serial.println("check");
     //Serial.println(freq);
+  }
+  if(oldRadixInt != radixInt){
+    updateRadix();
   }  
-  if (Serial.available()) {
-    str = Serial.readStringUntil('\r\n');
+  if (mySerial.available()) {
+    str = mySerial.readStringUntil('\r\n');
 
 
     
@@ -170,12 +186,12 @@ void loop() {
         String message;
         //Serial.println("MASTER");
         if(str.substring(3,6) == "DIS"){
-          message = dis+freq;
-          Serial.println(message);
+          message = dis+int(freq/100);
+          mySerial.println(message);
         }
         if(str.substring(3,6) == "FRE"){
-          message = fre+freq;
-          Serial.println(message);
+          message = fre+int(freq/100);
+          mySerial.println(message);
         }
         
         /*if(atol(cstr)){
@@ -232,24 +248,27 @@ void UpdateRot(){
             updateDis = 1;
             if(radix == 1000000){
               radix = 100000;
+              radixInt = 16;
             }
             else if(radix == 100000){
               radix = 10000;
+              radixInt = 8;
             }
             else if(radix == 10000){
               radix = 1000;
+              radixInt = 4;
             }
             else if(radix == 1000){
               radix = 100;
+              radixInt = 2;
             }
             else if(radix == 100){
               radix = 10;
-            }
-            else if(radix == 10){
-              radix = 1;
+              radixInt = 1;
             }
             else{
               radix = 1000000;
+              radixInt = 32;
             }
           }
           /*else if(digitalRead(btn1) == LOW && digitalRead(btn2) == HIGH && digitalRead(btn3) == HIGH && digitalRead(btn4) == HIGH){
@@ -263,7 +282,7 @@ void UpdateRot(){
             contrast = chkAnalog(contrast);
           }*/
           else{
-            Serial.println("Achange");
+            //Serial.println("Achange");
             freq = (freq + radix);
               if(freq > bandEnd){
                 freq = bandEnd;
@@ -307,25 +326,28 @@ void UpdateRot(){
           if(digitalRead(pushPin)== LOW){
             updateDis = 1;
             if(radix == 1000000){
-              radix = 1;
-            }
-            else if(radix == 1){
               radix = 10;
+              radixInt = 1;
             }
             else if(radix == 10){
               radix = 100;
+              radixInt = 2;
             }
             else if(radix == 100){
               radix = 1000;
+              radixInt = 4;
             }
             else if(radix == 1000){
               radix = 10000;
+              radixInt = 8;
             }
             else if(radix == 10000){
               radix = 100000;
+              radixInt = 16;
             }
             else{
               radix = 1000000;
+              radixInt = 32;
             }
           }
           /*else if(digitalRead(btn1) == LOW && digitalRead(btn2) == HIGH && digitalRead(btn3) == HIGH && digitalRead(btn4) == HIGH){
@@ -467,59 +489,16 @@ void UpdateRot(){
 }
 */
 void updateDisplay(long int frequency){
-  long int sendFreq = frequency;
+  long int sendFreq = long(frequency/100);
   String message = dis + sendFreq;
-  Serial.println(message);
-  //Serial.println(center_button);
-  /*if(frequency > 9999999){
-    if(radix == 1){
-      Serial.println("         -");
-    }
-    if(radix == 10){
-      Serial.println("        -");
-    }
-    if(radix == 100){
-      Serial.println("     -");
-    }
-    if(radix == 1000){
-      Serial.println("      -");
-    }
-    if(radix == 10000){
-      Serial.println("     -");
-    }
-    if(radix == 100000){
-      Serial.println("    -");
-    }  
-    if(radix == 1000000){
-      Serial.println("   -");
-    }
-  }
-  if(frequency <= 9999999){
-    if(radix == 1){
-      Serial.println("        -");
-    }
-    if(radix == 10){
-      Serial.println("       -");
-    }
-    if(radix == 100){
-      Serial.println("      -");
-    }
-    if(radix == 1000){
-      Serial.println("     -");
-    }
-    if(radix == 10000){
-      Serial.println("    -");
-    }
-    if(radix == 100000){
-      Serial.println("   -");
-    }  
-    if(radix == 1000000){
-      Serial.println("  -");
-    }
-  }*/
-  //SendFrequency(frequency);
+  mySerial.println(message);
   updateDis = 0;
 }
+void updateRadix(){
+  String message = rix + radixInt;
+  mySerial.println(message);
+  updateDis = 0;
+} 
 
 /*
 void SendFrequency(long int freq){

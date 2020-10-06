@@ -58,6 +58,7 @@ byte seven = B00011100;
 byte eight = B01111111;
 byte nine =  B01111110;
 byte zero =  B00111111;
+byte DPs =   B10000000;
 
 /***********************************************
  * 
@@ -68,12 +69,13 @@ byte zero =  B00111111;
 long oldFreq;
 long freq;  
 long ackFreq;
+int radix = 0x02;
 
 String str;
 char cstr[10];
 
 byte anodes = B00000000; // if led display should be of or on
-
+//bool DPs= false;
 /***********************************************
  * 
  *  Definition segs numbers
@@ -100,7 +102,13 @@ void setup() {
  * 
  ***********************************************/
 
-  Serial.begin(57600);
+ Serial.begin(57600);
+ /***********************************************
+ * 
+ *  Display 
+ * 
+ ***********************************************/
+ 
   
 /***********************************************
  * 
@@ -168,8 +176,7 @@ void setup() {
       calcSevenSeg(freq);
       sevenSeg(freq);
     }
-  }
-  
+  }  
 }
 
   /***********************************************
@@ -190,6 +197,17 @@ void loop() {
       if(atol(cstr)){
         freq = atol(cstr);
         Serial.println(freq);  
+      }
+    }
+    if(str.substring(0,3)== "RIX"){
+      str = str.substring(3,10);
+      str.toCharArray(cstr,10);
+      //Serial.println("DISPLAY");
+      if(atol(cstr)){
+        radix = atol(cstr);
+        //Serial.println(freq);  
+        //calcSevenSeg(freq);
+        //sevenSeg(freq);
       }
     }
     if(oldFreq != freq){
@@ -214,13 +232,13 @@ void pickDigit(int digit){
   digitalWrite(ANODE6,1);
   
   switch(digit){
-    case 1: digitalWrite(ANODE1,0); break;
-    case 2: digitalWrite(ANODE3,0); break;
-    case 3: digitalWrite(ANODE4,0); break;
-    case 4: digitalWrite(ANODE5,0); break;
-    case 5: digitalWrite(ANODE6,0); break;
+    case 1: digitalWrite(ANODE1,(anodes & 0x01)); break;
+    case 2: digitalWrite(ANODE3,(anodes & 0x02)); break;
+    case 3: digitalWrite(ANODE4,(anodes & 0x04)); break;
+    case 4: digitalWrite(ANODE5,(anodes & 0x08)); break;
+    case 5: digitalWrite(ANODE6,(anodes & 0x10)); break;
     //case 6: digitalWrite(ANODE7,0); break;
-    default: digitalWrite(ANODE2,0); break;
+    default: digitalWrite(ANODE2,(anodes & 0x20)); break;
   }  
 }
 /***********************************************
@@ -236,11 +254,11 @@ void calcSevenSeg(long freq){
  *  Checks for what aode to turn on or off
  * 
  ***********************************************/
-  if(freq < 100000){
-    anodes = B00100000;
+  if(freq <= 100000){
+    anodes = B00010000;  
   }
-  if(freq < 1000){
-    anodes = B00110000;  
+  else{
+    anodes = B00000000;  
   }
 
   /***********************************************
@@ -276,26 +294,28 @@ int tens = int((freq/10)%10);
 int ones = int((freq/1)%10);
   */ 
    pickDigit(0);
-   choose_digit(tens);
+   choose_digit(tens,(0x02 & DPs));
    delay(VIEW_TIME);
    pickDigit(1);
-   choose_digit(ones);
+   choose_digit(ones,(0x01 & DPs));
    delay(VIEW_TIME);
-    pickDigit(2);
-   choose_digit(hundreds);
+   pickDigit(2);
+   choose_digit(hundreds,(0x04 & DPs));
    delay(VIEW_TIME);
     pickDigit(3);
-   choose_digit(thousands);
+   choose_digit(thousands,(0x08 & DPs));
    delay(VIEW_TIME);
    pickDigit(4);
-   choose_digit(tenthousends);
+   choose_digit(tenthousends,(0x10 & DPs));
    delay(VIEW_TIME);
    pickDigit(5);
-   choose_digit(hunderedthousands);
+   choose_digit(hunderedthousands,(0x20 & DPs));
    delay(VIEW_TIME);
    //pickDigit(6);
    //choose_digit(millions);
    //delay(3);
+   
+   //TODO DP -> Radix 
 }
 
 /***********************************************
@@ -304,31 +324,30 @@ int ones = int((freq/1)%10);
  * 
  ***********************************************/
 
-void choose_digit(long num){
-  
+void choose_digit(int num, bool DPs){
   switch(num){
     default:
-      printDigit(B00000000); break;
+      printDigit(B00000000,false); break;
     case 0:
-      printDigit(zero);break;
+      printDigit(zero,DPs);break;
     case 1:
-      printDigit(one);break;     
+      printDigit(one,DPs);break;     
     case 2:
-      printDigit(two);break;
+      printDigit(two,DPs);break;
     case 3:
-      printDigit(three);break;
+      printDigit(three,DPs);break;
     case 4:
-      printDigit(four);break;
+      printDigit(four,DPs);break;
     case 5:
-      printDigit(five);break;
+      printDigit(five,DPs);break;
     case 6:
-      printDigit(six);break;
+      printDigit(six,DPs);break;
     case 7:
-      printDigit(seven);break;
+      printDigit(seven,DPs);break;
     case 8:
-      printDigit(eight);break;
+      printDigit(eight,DPs);break;
     case 9:
-      printDigit(nine);break;
+      printDigit(nine,DPs);break;
   }
 }
 
@@ -338,7 +357,7 @@ void choose_digit(long num){
  * 
  ***********************************************/
 
-void printDigit(byte digit){
+void printDigit(byte digit,bool DPs){
   digitalWrite(A,(digit & 0x01));
   digitalWrite(B,(digit & 0x02));
   digitalWrite(C,(digit & 0x04));
@@ -346,5 +365,5 @@ void printDigit(byte digit){
   digitalWrite(E,(digit & 0x10));
   digitalWrite(F,(digit & 0x20));
   digitalWrite(G,(digit & 0x40));
-  digitalWrite(DP,(digit & 0x80));
+  digitalWrite(DP,DPs);
 }
